@@ -59,14 +59,21 @@
   <section class="section" style="padding-top: 0;">
     <div class="container">
       
-      <!-- Search & Filters Container (CAS Only) -->
-      <div class="product-search-bar" style="justify-content: center;">
-        <div class="search-input-wrap" style="max-width: 600px; width: 100%;">
+      <!-- Search & Filters Container (CAS Only + Download) -->
+      <div class="product-search-bar" style="justify-content: center; gap: 15px; flex-wrap: wrap;">
+        <div class="search-input-wrap" style="max-width: 500px; width: 100%; margin: 0;">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
           <input type="text" id="product-search" class="form-input" placeholder="Search by CAS Number (e.g., 9004-61-9)...">
         </div>
+        
+        <button id="download-catalog-btn" class="btn btn-secondary" style="height: 50px; display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 0 20px; border-radius: var(--radius-sm); white-space: nowrap;">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Download Catalog (CSV)
+        </button>
       </div>
 
       <!-- Spinner Loader while fetching CSV -->
@@ -83,7 +90,7 @@
               <th style="width: 35%; min-width: 250px;">Product Details</th>
               <th style="width: 15%; min-width: 130px;">CAS No.</th>
               <th style="width: 15%; min-width: 130px;">Category</th>
-              <th style="width: 10%; min-width: 90px;">Purity</th>
+              <th style="width: 10%; min-width: 90px;">Monograph</th>
               <th style="width: 15%; min-width: 160px;">Certificates</th>
               <th style="width: 10%; text-align: right; min-width: 90px;">Action</th>
             </tr>

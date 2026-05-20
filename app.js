@@ -82,6 +82,7 @@ let allProducts = [];
 async function initProductCatalog() {
   const loading = document.getElementById('catalog-loading');
   const searchInput = document.getElementById('product-search');
+  const downloadBtn = document.getElementById('download-catalog-btn');
   
   try {
     const response = await fetch(SHEET_CSV_URL);
@@ -99,8 +100,9 @@ async function initProductCatalog() {
     // Dynamic Schema.org injection for Google SEO
     injectProductsSchema(allProducts);
     
-    // Event listener for CAS search only
+    // Event listeners
     searchInput?.addEventListener('input', filterProducts);
+    downloadBtn?.addEventListener('click', downloadCatalog);
     
   } catch (error) {
     console.error('Error fetching/parsing Google Sheets:', error);
@@ -144,35 +146,58 @@ function parseCSV(text) {
     lines.push(row);
   }
   
-  if (lines.length < 2) return [];
+  if (lines.length === 0) return [];
   
-  const headers = lines[0].map(h => h.trim().toLowerCase());
+  // Dynamic header search to skip random top title lines (e.g. "Active Pharmaceutical Ingredients")
+  let headerRowIndex = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const cells = lines[i];
+    const isHeader = cells.some(cell => {
+      const c = cell.trim().toLowerCase();
+      return c.includes('product name') || c.includes('cas') || c.includes('specification');
+    });
+    if (isHeader) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+  
+  const headers = lines[headerRowIndex].map(h => h.trim().toLowerCase());
   const getIndex = (keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
   
+  // Precise field indexing based on Google Sheet headers
   const idx = {
-    name: getIndex(['name', '名称', '产品名', 'title']),
-    cas: getIndex(['cas', 'cas号']),
-    purity: getIndex(['purity', '纯度', 'spec']),
-    category: getIndex(['category', '类别', '分类', 'type']),
-    certs: getIndex(['cert', '认证', 'compliance', 'standards']),
-    mw: getIndex(['mw', 'molecular weight', '分子量', 'm.w.']),
-    formula: getIndex(['formula', 'molecular formula', '分子式'])
+    name: getIndex(['product name', 'name', '名称']),
+    cas: getIndex(['cas no.', 'cas number', 'cas', 'cas号']),
+    spec: getIndex(['specification', 'spec', '规格', '标准']),
+    usDmf: getIndex(['us dmf', 'usdmf']),
+    euDmf: getIndex(['eu dmf', 'eudmf']),
+    cep: getIndex(['cep']),
+    jpDmf: getIndex(['jp dmf', 'jpdmf']),
+    cdeStatus: getIndex(['cde status', 'cde'])
   };
   
-  return lines.slice(1).map(row => {
-    const getValue = (fieldIndex, fallbackIdx) => {
-      const realIdx = fieldIndex !== -1 ? fieldIndex : fallbackIdx;
-      return row[realIdx] ? row[realIdx].trim() : '';
-    };
+  const dataLines = lines.slice(headerRowIndex + 1);
+  
+  return dataLines.map(row => {
+    const getVal = (idxVal) => idxVal !== -1 && row[idxVal] ? row[idxVal].trim() : '';
+    
+    // Compile active certificates as formatted text
+    const certsArray = [];
+    if (idx.usDmf !== -1 && row[idx.usDmf] === '●') certsArray.push('US DMF');
+    if (idx.euDmf !== -1 && row[idx.euDmf] === '●') certsArray.push('EU DMF');
+    if (idx.cep !== -1 && row[idx.cep] === '●') certsArray.push('CEP');
+    if (idx.jpDmf !== -1 && row[idx.jpDmf] === '●') certsArray.push('JP DMF');
+    if (idx.cdeStatus !== -1 && getVal(idx.cdeStatus) !== '') {
+      certsArray.push(`CDE: ${getVal(idx.cdeStatus)}`);
+    }
     
     return {
-      name: getValue(idx.name, 0),
-      cas: getValue(idx.cas, 1),
-      purity: getValue(idx.purity, 2),
-      category: getValue(idx.category, 3),
-      certs: getValue(idx.certs, 4),
-      mw: getValue(idx.mw, 5),
-      formula: getValue(idx.formula, 6)
+      name: getVal(idx.name),
+      cas: getVal(idx.cas),
+      category: 'API', // Default to API based on sheet context
+      spec: getVal(idx.spec),
+      certs: certsArray.join(', ')
     };
   }).filter(p => p.name && p.name !== '');
 }
@@ -187,32 +212,33 @@ function renderProducts(products) {
   }
   
   container.innerHTML = products.map((p, idx) => {
+    // Parse certificates list into styled badge pills
     const certsHtml = p.certs ? p.certs.split(/[,，;；]/).map(c => {
       const cTrim = c.trim();
       if (!cTrim) return '';
       const isGMP = ['GMP', 'cGMP'].includes(cTrim.toUpperCase());
-      return `<span class="cert-pill ${isGMP ? 'gmp' : ''}">${cTrim}</span>`;
+      const isCDE = cTrim.toUpperCase().includes('CDE');
+      return `<span class="cert-pill ${isGMP ? 'gmp' : ''} ${isCDE ? 'cde' : ''}">${cTrim}</span>`;
     }).join('') : '<span style="color:var(--text-muted); font-size:0.85rem;">Standard</span>';
     
-    const waText = encodeURIComponent(`Hi Lentotech, I am interested in Product: ${p.name} (CAS: ${p.cas || 'N/A'}, Purity: ${p.purity || 'N/A'}). Please provide a quote.`);
+    const waText = encodeURIComponent(`Hi Lentotech, I am interested in Product: ${p.name} (CAS: ${p.cas || 'N/A'}, Monograph: ${p.spec || 'N/A'}). Please provide a quote.`);
     
     return `
       <tr>
         <td>
           <strong style="color:#fff; font-size: 1.05rem; display: block; line-height: 1.3;">${p.name}</strong>
-          ${p.formula ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Formula: ${p.formula}</div>` : ''}
         </td>
         <td>
           ${p.cas ? `<span class="cas-badge">${p.cas}</span>` : '<span style="color:var(--text-muted);">-</span>'}
         </td>
         <td>
-          ${p.category ? `<span style="font-size:0.9rem; color:var(--text-muted);">${p.category}</span>` : '-'}
+          <span style="font-size:0.9rem; color:var(--text-muted);">${p.category}</span>
         </td>
         <td>
-          <span class="purity-badge">${p.purity || '98%+'}</span>
+          <span class="purity-badge" style="font-size:0.9rem;">${p.spec || 'Standard'}</span>
         </td>
         <td>
-          <div style="display:flex; flex-wrap:wrap; gap:4px;">${certsHtml}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">${certsHtml}</div>
         </td>
         <td style="text-align: right;">
           <a href="https://wa.me/message/D2ij4kMatiy4s5UUDO7pHd?text=${waText}" target="_blank" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem; border-radius: 6px;">
@@ -228,11 +254,45 @@ function filterProducts() {
   const searchVal = document.getElementById('product-search').value.trim().toLowerCase();
   
   const filtered = allProducts.filter(p => {
-    // Only match against the CAS number field
     return p.cas && p.cas.toLowerCase().includes(searchVal);
   });
   
   renderProducts(filtered);
+}
+
+// Download the dynamic Google Sheet catalog as CSV (Excel Compatible with UTF-8 BOM)
+function downloadCatalog() {
+  if (!allProducts || allProducts.length === 0) {
+    alert("Catalog data is not loaded yet. Please wait a moment / 产品数据正在从 Google Sheets 载入中，请稍后重试。");
+    return;
+  }
+  
+  // CSV column headers
+  const csvHeaders = ["Product Name", "CAS Number", "Category", "Specification / Monograph", "Regulatory Certificates"];
+  
+  // Format cells: double quotes added and internal double quotes escaped
+  const csvRows = allProducts.map(p => [
+    `"${(p.name || '').replace(/"/g, '""')}"`,
+    `"${(p.cas || '').replace(/"/g, '""')}"`,
+    `"${(p.category || '').replace(/"/g, '""')}"`,
+    `"${(p.spec || '').replace(/"/g, '""')}"`,
+    `"${(p.certs || '').replace(/"/g, '""')}"`
+  ]);
+  
+  // Assemble CSV with UTF-8 BOM sequence (\uFEFF) for Excel language support
+  const csvContent = "\uFEFF" + [csvHeaders.join(",")].concat(csvRows.map(r => r.join(","))).join("\n");
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", "Lentotech_Product_Catalog.csv");
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // Injects Schema.org Product markup dynamically into Head for Google SEO indexing
@@ -242,7 +302,7 @@ function injectProductsSchema(products) {
     "name": p.name,
     "category": p.category || "Chemical Ingredients",
     "mpn": p.cas || undefined,
-    "description": `${p.name} (CAS ${p.cas || 'N/A'}). Purity: ${p.purity || 'N/A'}. Intended for research and export only.`,
+    "description": `${p.name} (CAS ${p.cas || 'N/A'}). Specification: ${p.spec || 'N/A'}. Intended for research and export only.`,
     "offers": {
       "@type": "AggregateOffer",
       "priceCurrency": "USD",
