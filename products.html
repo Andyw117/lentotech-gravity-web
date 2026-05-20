@@ -50,8 +50,8 @@
   <!-- Title Section -->
   <section class="hero" style="padding: 140px 0 60px 0; background: radial-gradient(circle at 50% 10%, rgba(13, 148, 136, 0.1) 0%, transparent 60%);">
     <div class="container">
-      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">Active Ingredients Database</h1>
-      <p class="hero-subtitle" style="font-size: 1.1rem; max-width: 600px;">Direct connection to Lentotech's live inventory and product catalog. Search by name, CAS index, or molecular attributes.</p>
+      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 12px;">Key Products / 关键产品展示</h1>
+      <p class="hero-subtitle" style="font-size: 1.1rem; max-width: 600px;">Direct connection to Lentotech's key products catalog (Active Pharmaceutical Ingredients). Search by CAS number.</p>
     </div>
   </section>
 
@@ -68,12 +68,12 @@
           <input type="text" id="product-search" class="form-input" placeholder="Search by CAS Number (e.g., 9004-61-9)...">
         </div>
         
-        <button id="download-catalog-btn" class="btn btn-secondary" style="height: 50px; display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 0 20px; border-radius: var(--radius-sm); white-space: nowrap;">
+        <a href="https://docs.google.com/spreadsheets/d/1sSMc7rmIx4xfWAFMpHZvSMM3_wB-xprPkBqVUnwSH1g/export?format=xlsx" target="_blank" class="btn btn-secondary" style="height: 50px; display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 0 20px; border-radius: var(--radius-sm); white-space: nowrap; text-decoration: none;">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          Download Catalog (CSV)
-        </button>
+          Download Catalog (Excel)
+        </a>
       </div>
 
       <!-- Spinner Loader while fetching CSV -->

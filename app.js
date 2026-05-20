@@ -82,7 +82,6 @@ let allProducts = [];
 async function initProductCatalog() {
   const loading = document.getElementById('catalog-loading');
   const searchInput = document.getElementById('product-search');
-  const downloadBtn = document.getElementById('download-catalog-btn');
   
   try {
     const response = await fetch(SHEET_CSV_URL);
@@ -102,7 +101,6 @@ async function initProductCatalog() {
     
     // Event listeners
     searchInput?.addEventListener('input', filterProducts);
-    downloadBtn?.addEventListener('click', downloadCatalog);
     
   } catch (error) {
     console.error('Error fetching/parsing Google Sheets:', error);
@@ -260,40 +258,7 @@ function filterProducts() {
   renderProducts(filtered);
 }
 
-// Download the dynamic Google Sheet catalog as CSV (Excel Compatible with UTF-8 BOM)
-function downloadCatalog() {
-  if (!allProducts || allProducts.length === 0) {
-    alert("Catalog data is not loaded yet. Please wait a moment / 产品数据正在从 Google Sheets 载入中，请稍后重试。");
-    return;
-  }
-  
-  // CSV column headers
-  const csvHeaders = ["Product Name", "CAS Number", "Category", "Specification / Monograph", "Regulatory Certificates"];
-  
-  // Format cells: double quotes added and internal double quotes escaped
-  const csvRows = allProducts.map(p => [
-    `"${(p.name || '').replace(/"/g, '""')}"`,
-    `"${(p.cas || '').replace(/"/g, '""')}"`,
-    `"${(p.category || '').replace(/"/g, '""')}"`,
-    `"${(p.spec || '').replace(/"/g, '""')}"`,
-    `"${(p.certs || '').replace(/"/g, '""')}"`
-  ]);
-  
-  // Assemble CSV with UTF-8 BOM sequence (\uFEFF) for Excel language support
-  const csvContent = "\uFEFF" + [csvHeaders.join(",")].concat(csvRows.map(r => r.join(","))).join("\n");
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  
-  link.setAttribute("href", url);
-  link.setAttribute("download", "Lentotech_Product_Catalog.csv");
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+
 
 // Injects Schema.org Product markup dynamically into Head for Google SEO indexing
 function injectProductsSchema(products) {
