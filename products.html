@@ -59,19 +59,14 @@
   <section class="section" style="padding-top: 0;">
     <div class="container">
       
-      <!-- Search & Filters Container -->
-      <div class="product-search-bar">
-        <div class="search-input-wrap">
+      <!-- Search & Filters Container (CAS Only) -->
+      <div class="product-search-bar" style="justify-content: center;">
+        <div class="search-input-wrap" style="max-width: 600px; width: 100%;">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <input type="text" id="product-search" class="form-input" placeholder="Search by Product Name, CAS Number, Molecular Formula...">
+          <input type="text" id="product-search" class="form-input" placeholder="Search by CAS Number (e.g., 9004-61-9)...">
         </div>
-        
-        <select id="product-category" class="filter-select">
-          <option value="">All Categories / 所有类别</option>
-          <!-- Dynamic Options loaded by JS -->
-        </select>
       </div>
 
       <!-- Spinner Loader while fetching CSV -->
@@ -85,12 +80,12 @@
         <table class="products-table" id="product-catalog">
           <thead>
             <tr>
-              <th style="min-width: 220px;">Product Details</th>
-              <th style="width: 140px;">CAS No.</th>
-              <th style="width: 180px;">Category</th>
-              <th style="width: 100px;">Purity</th>
-              <th style="min-width: 160px;">Certificates</th>
-              <th style="width: 100px; text-align: right;">Action</th>
+              <th style="width: 35%; min-width: 250px;">Product Details</th>
+              <th style="width: 15%; min-width: 130px;">CAS No.</th>
+              <th style="width: 15%; min-width: 130px;">Category</th>
+              <th style="width: 10%; min-width: 90px;">Purity</th>
+              <th style="width: 15%; min-width: 160px;">Certificates</th>
+              <th style="width: 10%; text-align: right; min-width: 90px;">Action</th>
             </tr>
           </thead>
           <tbody id="products-tbody">

@@ -254,7 +254,7 @@
     </div>
   </section>
 
-  <!-- News & Insights (Blogger Integration) -->
+  <!-- News & Insights (Blogger Integration Carousel) -->
   <section class="section" id="news-section">
     <div class="container">
       <div class="section-header">
@@ -262,12 +262,33 @@
         <p class="section-desc">Latest trends, compliance changes, and technology insights fetched dynamically from our Blogger channel.</p>
       </div>
       
-      <div class="news-grid" id="blogger-news">
-        <!-- JS inserts blog cards here. Default fallback cards are loaded if fetch fails. -->
-        <div class="loading-box">
-          <div class="spinner"></div>
-          <p>Connecting to Blogger insights channel...</p>
+      <div class="carousel-container">
+        <button class="carousel-btn prev-btn" id="blog-prev" aria-label="Previous Slide">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track" id="blogger-news">
+            <!-- JS inserts blog slides here. Default fallback cards are loaded if fetch fails. -->
+            <div class="loading-box">
+              <div class="spinner"></div>
+              <p>Connecting to Blogger insights channel...</p>
+            </div>
+          </div>
         </div>
+        
+        <button class="carousel-btn next-btn" id="blog-next" aria-label="Next Slide">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Dots indicators -->
+      <div class="carousel-dots" id="blog-dots">
+        <!-- JS dynamically renders dots -->
       </div>
     </div>
   </section>

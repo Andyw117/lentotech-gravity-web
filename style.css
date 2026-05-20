@@ -660,8 +660,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .products-table th, .products-table td {
-  padding: 16px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
+  vertical-align: middle; /* Align text to center vertically */
 }
 
 .products-table th {
@@ -671,8 +672,13 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
 }
 
+.products-table tr {
+  transition: var(--transition-smooth);
+}
+
 .products-table tr:hover {
   background-color: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 3px 0 0 var(--accent-teal-light); /* Hover alignment glow */
 }
 
 .cas-badge {
@@ -683,11 +689,13 @@ h1, h2, h3, h4, h5, h6 {
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
+  white-space: nowrap; /* Prevent CAS wrapping */
 }
 
 .purity-badge {
   font-weight: 600;
   color: var(--accent-teal-light);
+  white-space: nowrap; /* Prevent purity wrapping */
 }
 
 .cert-pill {
@@ -699,6 +707,7 @@ h1, h2, h3, h4, h5, h6 {
   padding: 2px 8px;
   border-radius: 50px;
   margin-right: 4px;
+  white-space: nowrap; /* Prevent badge wrapping */
 }
 
 .cert-pill.gmp {
@@ -707,11 +716,95 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgba(16, 185, 129, 0.2);
 }
 
-/* --- Blogger RSS News Cards --- */
-.news-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+/* --- Blogger RSS News Cards & Carousel --- */
+.carousel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 40px;
+  width: 100%;
+}
+
+.carousel-track-wrapper {
+  overflow: hidden;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  padding: 10px 0; /* Add slight padding for hover scale space */
+}
+
+.carousel-track {
+  display: flex;
   gap: 2rem;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.carousel-slide {
+  flex: 0 0 calc(33.333% - 1.333rem); /* 3 cards visible on desktop */
+  min-width: 280px;
+  transition: var(--transition-smooth);
+}
+
+@media (max-width: 992px) {
+  .carousel-slide {
+    flex: 0 0 calc(50% - 1rem); /* 2 cards visible on tablet */
+  }
+}
+
+@media (max-width: 768px) {
+  .carousel-slide {
+    flex: 0 0 100%; /* 1 card visible on mobile */
+  }
+}
+
+.carousel-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: var(--transition-smooth);
+  flex-shrink: 0;
+  backdrop-filter: blur(10px);
+}
+
+.carousel-btn:hover {
+  background: var(--accent-teal);
+  border-color: var(--accent-teal);
+  transform: scale(1.1);
+}
+
+.carousel-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.carousel-dot.active {
+  background: var(--accent-teal-light);
+  transform: scale(1.3);
 }
 
 .news-card {
@@ -722,6 +815,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: var(--transition-smooth);
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .news-card:hover {
@@ -933,6 +1027,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   padding: 60px;
   gap: 16px;
+  width: 100%;
 }
 
 .spinner {

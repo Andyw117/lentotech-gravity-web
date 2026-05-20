@@ -73,18 +73,15 @@ function deobfuscateEmails() {
 }
 
 /* ==========================================================================
-   3. Google Sheets Integration & Catalog Logic
+   3. Google Sheets Integration & Catalog Logic (CAS Only)
    ========================================================================== */
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1sSMc7rmIx4xfWAFMpHZvSMM3_wB-xprPkBqVUnwSH1g/export?format=csv';
 
 let allProducts = [];
-let categories = new Set();
 
 async function initProductCatalog() {
-  const container = document.getElementById('product-catalog');
   const loading = document.getElementById('catalog-loading');
   const searchInput = document.getElementById('product-search');
-  const categorySelect = document.getElementById('product-category');
   
   try {
     const response = await fetch(SHEET_CSV_URL);
@@ -93,22 +90,7 @@ async function initProductCatalog() {
     const csvText = await response.text();
     allProducts = parseCSV(csvText);
     
-    // Extract unique categories
-    allProducts.forEach(prod => {
-      if (prod.category && prod.category.trim() !== '') {
-        categories.add(prod.category.trim());
-      }
-    });
-    
-    // Populate Category Dropdown
-    categories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      categorySelect?.appendChild(opt);
-    });
-    
-    // Hide loading, show table
+    // Hide loading
     if (loading) loading.style.display = 'none';
     
     // Initial Render
@@ -117,9 +99,8 @@ async function initProductCatalog() {
     // Dynamic Schema.org injection for Google SEO
     injectProductsSchema(allProducts);
     
-    // Event listeners for search & filter
+    // Event listener for CAS search only
     searchInput?.addEventListener('input', filterProducts);
-    categorySelect?.addEventListener('change', filterProducts);
     
   } catch (error) {
     console.error('Error fetching/parsing Google Sheets:', error);
@@ -166,8 +147,6 @@ function parseCSV(text) {
   if (lines.length < 2) return [];
   
   const headers = lines[0].map(h => h.trim().toLowerCase());
-  
-  // Find key index mappings based on common headers
   const getIndex = (keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
   
   const idx = {
@@ -181,7 +160,6 @@ function parseCSV(text) {
   };
   
   return lines.slice(1).map(row => {
-    // If indices are not found, default to column index fallback
     const getValue = (fieldIndex, fallbackIdx) => {
       const realIdx = fieldIndex !== -1 ? fieldIndex : fallbackIdx;
       return row[realIdx] ? row[realIdx].trim() : '';
@@ -196,7 +174,7 @@ function parseCSV(text) {
       mw: getValue(idx.mw, 5),
       formula: getValue(idx.formula, 6)
     };
-  }).filter(p => p.name && p.name !== ''); // Filter empty rows
+  }).filter(p => p.name && p.name !== '');
 }
 
 function renderProducts(products) {
@@ -209,7 +187,6 @@ function renderProducts(products) {
   }
   
   container.innerHTML = products.map((p, idx) => {
-    // Parse certification string into badges
     const certsHtml = p.certs ? p.certs.split(/[,，;；]/).map(c => {
       const cTrim = c.trim();
       if (!cTrim) return '';
@@ -217,14 +194,13 @@ function renderProducts(products) {
       return `<span class="cert-pill ${isGMP ? 'gmp' : ''}">${cTrim}</span>`;
     }).join('') : '<span style="color:var(--text-muted); font-size:0.85rem;">Standard</span>';
     
-    // Encode CAS and Name for direct WhatsApp inquiry
     const waText = encodeURIComponent(`Hi Lentotech, I am interested in Product: ${p.name} (CAS: ${p.cas || 'N/A'}, Purity: ${p.purity || 'N/A'}). Please provide a quote.`);
     
     return `
       <tr>
         <td>
-          <strong style="color:#fff; font-size: 1.05rem;">${p.name}</strong>
-          ${p.formula ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Formula: ${p.formula}</div>` : ''}
+          <strong style="color:#fff; font-size: 1.05rem; display: block; line-height: 1.3;">${p.name}</strong>
+          ${p.formula ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Formula: ${p.formula}</div>` : ''}
         </td>
         <td>
           ${p.cas ? `<span class="cas-badge">${p.cas}</span>` : '<span style="color:var(--text-muted);">-</span>'}
@@ -249,15 +225,11 @@ function renderProducts(products) {
 }
 
 function filterProducts() {
-  const searchVal = document.getElementById('product-search').value.toLowerCase();
-  const catVal = document.getElementById('product-category').value;
+  const searchVal = document.getElementById('product-search').value.trim().toLowerCase();
   
   const filtered = allProducts.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(searchVal) || 
-                        p.cas.toLowerCase().includes(searchVal) ||
-                        (p.formula && p.formula.toLowerCase().includes(searchVal));
-    const matchCat = catVal === '' || p.category === catVal;
-    return matchSearch && matchCat;
+    // Only match against the CAS number field
+    return p.cas && p.cas.toLowerCase().includes(searchVal);
   });
   
   renderProducts(filtered);
@@ -265,7 +237,6 @@ function filterProducts() {
 
 // Injects Schema.org Product markup dynamically into Head for Google SEO indexing
 function injectProductsSchema(products) {
-  // Only inject up to 10 key products to keep page payload clean and structured
   const items = products.slice(0, 10).map(p => ({
     "@type": "Product",
     "name": p.name,
@@ -296,9 +267,12 @@ function injectProductsSchema(products) {
 }
 
 /* ==========================================================================
-   4. Blogger RSS Feed Fetcher
+   4. Blogger RSS Feed & Carousel Mechanics
    ========================================================================== */
 const BLOGGER_RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=https://zbpgroup.blogspot.com/feeds/posts/default';
+
+let currentCarouselIndex = 0;
+let carouselAutoplay;
 
 async function loadBloggerNews() {
   const container = document.getElementById('blogger-news');
@@ -313,19 +287,17 @@ async function loadBloggerNews() {
       throw new Error('RSS conversion failed');
     }
     
-    // Render top 3 blog articles
-    const posts = data.items.slice(0, 3);
+    // Render top 6 blog articles as carousel slides
+    const posts = data.items.slice(0, 6);
     container.innerHTML = posts.map(post => {
-      // Find thumbnail or set fallback
       const thumb = post.thumbnail || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=400&auto=format&fit=crop';
       const date = new Date(post.pubDate).toLocaleDateString('en-US', {
         year: 'numeric', month: 'short', day: 'numeric'
       });
-      // Strip tags for content preview
       const preview = post.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...';
       
       return `
-        <article class="news-card">
+        <article class="news-card carousel-slide">
           <img src="${thumb}" alt="${post.title}" class="news-img" loading="lazy">
           <div class="news-content">
             <span class="news-date">${date}</span>
@@ -341,6 +313,8 @@ async function loadBloggerNews() {
         </article>
       `;
     }).join('');
+    
+    initBlogCarousel();
     
   } catch (error) {
     console.warn('Could not load RSS Blogger feed, loading static fallback cards.', error);
@@ -370,11 +344,23 @@ function renderFallbackNews() {
       date: "Mar 15, 2026",
       desc: "Key frameworks for medical IP valuation, technical transfer processes, and signing confidential NDAs.",
       url: "https://zbpgroup.blogspot.com"
+    },
+    {
+      title: "High-Purity Active Ingredients in Modern Drug Formulation",
+      date: "Feb 22, 2026",
+      desc: "A technical walkthrough on crystallization techniques, impurities control, and bioequivalence scaling.",
+      url: "https://zbpgroup.blogspot.com"
+    },
+    {
+      title: "Navigating Medical Device Customs and Logistics Hazards",
+      date: "Jan 30, 2026",
+      desc: "Addressing custom declarations, cold-chain monitoring, and biological material shipping compliance.",
+      url: "https://zbpgroup.blogspot.com"
     }
   ];
   
   container.innerHTML = fallbackArticles.map(art => `
-    <article class="news-card">
+    <article class="news-card carousel-slide">
       <img src="https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=400&auto=format&fit=crop" alt="${art.title}" class="news-img" loading="lazy">
       <div class="news-content">
         <span class="news-date">${art.date}</span>
@@ -389,6 +375,120 @@ function renderFallbackNews() {
       </div>
     </article>
   `).join('');
+
+  initBlogCarousel();
+}
+
+function initBlogCarousel() {
+  const track = document.getElementById('blogger-news');
+  const prevBtn = document.getElementById('blog-prev');
+  const nextBtn = document.getElementById('blog-next');
+  const dotsContainer = document.getElementById('blog-dots');
+  
+  if (!track) return;
+  const slides = track.querySelectorAll('.carousel-slide');
+  if (slides.length === 0) return;
+  
+  // Render dot indicators
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.classList.add('carousel-dot');
+      if (idx === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => {
+        currentCarouselIndex = idx;
+        updateCarousel();
+        resetAutoplay();
+      });
+      dotsContainer.appendChild(dot);
+    });
+  }
+  
+  // Navigation button listeners
+  prevBtn?.addEventListener('click', () => {
+    if (currentCarouselIndex > 0) {
+      currentCarouselIndex--;
+    } else {
+      currentCarouselIndex = getCarouselMaxIndex(slides.length);
+    }
+    updateCarousel();
+    resetAutoplay();
+  });
+  
+  nextBtn?.addEventListener('click', () => {
+    const maxIndex = getCarouselMaxIndex(slides.length);
+    if (currentCarouselIndex < maxIndex) {
+      currentCarouselIndex++;
+    } else {
+      currentCarouselIndex = 0;
+    }
+    updateCarousel();
+    resetAutoplay();
+  });
+  
+  // Mouse hover pauses autoplay
+  const carouselContainer = document.querySelector('.carousel-container');
+  carouselContainer?.addEventListener('mouseenter', () => clearInterval(carouselAutoplay));
+  carouselContainer?.addEventListener('mouseleave', () => resetAutoplay());
+  
+  // Trigger initial alignment & setup autoplay
+  currentCarouselIndex = 0;
+  updateCarousel();
+  resetAutoplay();
+  
+  window.addEventListener('resize', updateCarousel);
+}
+
+function getCarouselMaxIndex(totalItems) {
+  let visibleItems = 3;
+  if (window.innerWidth <= 768) {
+    visibleItems = 1;
+  } else if (window.innerWidth <= 992) {
+    visibleItems = 2;
+  }
+  return Math.max(0, totalItems - visibleItems);
+}
+
+function updateCarousel() {
+  const track = document.getElementById('blogger-news');
+  const dots = document.querySelectorAll('.carousel-dot');
+  if (!track) return;
+  
+  const slides = track.querySelectorAll('.carousel-slide');
+  if (slides.length === 0) return;
+  
+  const maxIndex = getCarouselMaxIndex(slides.length);
+  if (currentCarouselIndex > maxIndex) {
+    currentCarouselIndex = maxIndex;
+  }
+  
+  const slideWidth = slides[0].getBoundingClientRect().width;
+  const gap = parseFloat(getComputedStyle(track).gap) || 0;
+  
+  const offset = currentCarouselIndex * (slideWidth + gap);
+  track.style.transform = `translateX(-${offset}px)`;
+  
+  // Highlight active dot index
+  dots.forEach((dot, idx) => {
+    dot.classList.toggle('active', idx === currentCarouselIndex);
+  });
+}
+
+function resetAutoplay() {
+  clearInterval(carouselAutoplay);
+  carouselAutoplay = setInterval(() => {
+    const track = document.getElementById('blogger-news');
+    if (!track) return;
+    const slides = track.querySelectorAll('.carousel-slide');
+    const maxIndex = getCarouselMaxIndex(slides.length);
+    if (currentCarouselIndex < maxIndex) {
+      currentCarouselIndex++;
+    } else {
+      currentCarouselIndex = 0;
+    }
+    updateCarousel();
+  }, 5000);
 }
 
 /* ==========================================================================
@@ -415,8 +515,6 @@ function initInquiryForm() {
     const desc = document.getElementById('contact-message')?.value || '';
     const segment = document.getElementById('contact-segment')?.value || 'General Inquiry';
     
-    // 1. Submit email via Formspree API (or simple mock submit)
-    // To set up live emails, update the action in HTML to a live Formspree/EmailJS endpoint
     const formSubmitUrl = form.action;
     const submitBtn = form.querySelector('button[type="submit"]');
     
@@ -433,13 +531,10 @@ function initInquiryForm() {
           headers: { 'Accept': 'application/json' }
         });
       } else {
-        // Fallback simulation
         await new Promise(resolve => setTimeout(resolve, 1000));
         console.log("Mock form submission details:", { name, company, email, phone, desc, segment });
       }
       
-      // 2. High-converting dynamic redirection
-      // User is prompted that email is sent and then redirected directly to WhatsApp/LinkedIn
       const waText = encodeURIComponent(`Hi Lentotech, I just submitted an inquiry for [${segment}] service via your portal.\nName: ${name}\nCompany: ${company}\nEmail: ${email}\nDetails: ${desc}`);
       const waRedirectUrl = `https://wa.me/message/D2ij4kMatiy4s5UUDO7pHd?text=${waText}`;
       
